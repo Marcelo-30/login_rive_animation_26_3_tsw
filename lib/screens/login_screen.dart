@@ -30,6 +30,57 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailFocusNode = FocusNode();
   final _passwordFocusNode = FocusNode();
 
+  //4.1 Controlers para manipular el texto escrito por el usuario
+  final emailCtrl= TextEditingController();
+  final passCtrl= TextEditingController();
+
+  //4.2 Errores para mostrar UI
+  String? emailError;
+  String? passError;
+
+   // 4.3 Validadores
+  bool isValidEmail(String email) {
+    final re = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
+    return re.hasMatch(email);
+  }
+
+  bool isValidPassword(String pass) {
+    // mínimo 8, una mayúscula, una minúscula, un dígito y un especial
+    final re = RegExp(
+      r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$');
+    return re.hasMatch(pass);
+  }
+
+  //4.4 Accion del boton
+  void _onLogin(){
+    final email= emailCtrl.text.trim();
+    final pass= passCtrl.text;
+
+    //Recalcular errores
+    final emailTypedError=isValidEmail(email) ? null : 'Email invalido';
+    final passwordTypedError=isValidPassword(pass) ? null : 'Contraseña invalido';
+
+    //4.5 Avisar que hubo un cambio
+    setState((){
+      emailError=emailTypedError;
+      passError=passwordTypedError;
+    });
+
+    //4.6 Cerrar el teclado
+    FocusScope.of(context).unfocus();
+    _typingDebounce?.cancel();
+    _isChecking?.change(false);
+    _isHandsUp?.change(false);
+    _numLook?.value=50.0;
+
+    //4.7 Activar triggers
+    if(emailTypedError== null && passwordTypedError== null){
+      _trigSucces?.fire();
+    } else {
+      _trigFail?.fire();
+    }
+  }
+
   //2.2 Crear los listeners 
 @override
   void initState(){
@@ -91,6 +142,8 @@ if (_emailFocusNode.hasFocus){
         
                 // Email
                 TextField(
+                  //4.8 Vincular controller
+                  controller: emailCtrl,
                   focusNode: _emailFocusNode,
                   onChanged: (value){
                     if (_isHandsUp != null){
@@ -111,6 +164,8 @@ if (_emailFocusNode.hasFocus){
                   },
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
+                    //4.9 Mostrar texto de error
+                    errorText: emailError,
                     hintText: "Email",
                     prefixIcon: const Icon(Icons.email),
                     border: OutlineInputBorder(
@@ -122,6 +177,8 @@ if (_emailFocusNode.hasFocus){
         
                 // Password
                 TextField(
+                    //4.8 Vincular controller
+                  controller: passCtrl,
                   focusNode: _passwordFocusNode,
                   onChanged: (value){
                     if (_isChecking != null){
@@ -132,6 +189,8 @@ if (_emailFocusNode.hasFocus){
                   },
                   obscureText: _isObscure,
                   decoration: InputDecoration(
+                    //4.9 Mostrar texto de error
+                    errorText: passError,
                     hintText: "Password",
                     prefixIcon: const Icon(Icons.lock),
                     suffixIcon: IconButton(
@@ -147,7 +206,44 @@ if (_emailFocusNode.hasFocus){
                       },
                     ),
                   ),
-                ), // Aquí faltaba cerrar el TextField
+                ),
+               SizedBox(height: 10),
+               SizedBox(
+                width: size.width,
+                child: const Text(
+                  "Forgot password?",
+                  textAlign: TextAlign.right,
+                  style: TextStyle(decoration: TextDecoration.underline)),
+               ),
+               const SizedBox(height: 10),
+               MaterialButton(
+                minWidth:size.width,
+                height: 50,
+                color: Colors.blueAccent,
+                shape: RoundedRectangleBorder(
+                  borderRadius:BorderRadius.circular(12),
+                ),
+                onPressed: _onLogin,
+                child: Text("Login", style: TextStyle(color: Colors.white)),
+               ),
+               const SizedBox(height: 20),
+               SizedBox(
+                width: size.width,
+                child:Row(children:[
+                  const Text("Don't have an accunt?"),
+                  TextButton(
+                    onPressed:(){},
+                    child: const Text(
+                      "Register",
+                      style: TextStyle(
+                        color: Colors.black,
+                        decoration:TextDecoration.underline,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ]),
+               ),
               ],
             ),
           ),
@@ -157,6 +253,9 @@ if (_emailFocusNode.hasFocus){
   }
   @override
   void dispose(){
+    //4.10 Liberar Controllers
+    emailCtrl.dispose();
+    passCtrl.dispose();
     //2.4 Liberar recursos
     _emailFocusNode.dispose();
     _passwordFocusNode.dispose();
