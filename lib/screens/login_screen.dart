@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:rive/rive.dart';
+//5.1 Importar Firebase Auth y la pantalla de productos
+import 'package:firebase_auth/firebase_auth.dart';
+import 'products_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -37,6 +40,9 @@ class _LoginScreenState extends State<LoginScreen> {
   // Mensajes de error.
   String? emailError;
   String? passError;
+
+   //5.2 Variable para mostrar el CircularProgressIndicator mientras carga
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -108,37 +114,96 @@ class _LoginScreenState extends State<LoginScreen> {
     return re.hasMatch(pass);
   }
 
-  // Acción del botón Login.
-  void _onLogin() {
-    final email = emailCtrl.text.trim();
-    final pass = passCtrl.text;
+//4.4 Dar acción al botón
+//5.3 Convertir _onLogin en asíncrono
+Future<void> _onLogin() async {
+  if (_isLoading) return;
 
-    final emailTypedError =
-        isValidEmail(email) ? null : 'Correo inválido';
+  //4.5 Obtener los valores de los campos
+  final email = emailCtrl.text.trim();
+  final pass = passCtrl.text;
 
-    final passwordTypedError =
-        isValidPassword(pass) ? null : 'Contraseña inválida';
+  //4.6 Evaluar los errores
+  final eError = isValidEmail(email) ? null : 'Correo inválido';
+  final pError = isValidPassword(pass) ? null : 'Contraseña inválida';
 
+  //4.7 Actualizar los mensajes de error
+  setState(() {
+    emailError = eError;
+    passError = pError;
+  });
+
+  //4.8 Cerrar el teclado y bajar las manos del osito
+  FocusScope.of(context).unfocus();
+  _typingDebounce?.cancel();
+  _isChecking?.change(false);
+  _isHandsUp?.change(false);
+  _numLook?.value = 50.0;
+
+  //4.9 Si algún campo es inválido, activar fallo y detener
+  if (eError != null || pError != null) {
+    _trigFail?.fire();
+    return;
+  }
+
+  //5.4 Activar el CircularProgressIndicator
+  setState(() {
+    _isLoading = true;
+  });
+
+  try {
+    //5.5 Autenticar usuario en Firebase
+    await Future.delayed(const Duration(seconds: 2));
+
+    await FirebaseAuth.instance.signInWithEmailAndPassword(
+      email: email,
+      password: pass,
+    );
+
+    if (!mounted) return;
+
+    //5.6 Apagar loading, celebrar y esperar la animación
     setState(() {
-      emailError = emailTypedError;
-      passError = passwordTypedError;
+      _isLoading = false;
     });
 
-    // Cerrar el teclado y restablecer los inputs.
-    FocusScope.of(context).unfocus();
+    _trigSuccess?.fire();
 
-    _typingDebounce?.cancel();
-    _isChecking?.change(false);
-    _isHandsUp?.change(false);
-    _numLook?.value = 50.0;
+    await Future.delayed(const Duration(seconds: 2));
 
-    // Activar la animación correspondiente.
-    if (emailTypedError == null && passwordTypedError == null) {
-      _trigSuccess?.fire();
-    } else {
-      _trigFail?.fire();
-    }
+    //5.7 Navegar a la pantalla de productos
+    if (!mounted) return;
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const ProductsScreen(),
+      ),
+    );
+  } on FirebaseAuthException catch (e) {
+    //5.8 Si Firebase rechaza las credenciales
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = false;
+      passError = 'Credenciales incorrectas en Firebase';
+    });
+
+    debugPrint('Firebase Auth error: ${e.code}');
+    _trigFail?.fire();
+  } catch (e) {
+    // Manejar otros errores inesperados
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = false;
+      passError = 'Ocurrió un error al iniciar sesión';
+    });
+
+    debugPrint('Login error: $e');
+    _trigFail?.fire();
   }
+}
 
   // Seguir con la mirada el texto del correo.
   void _onEmailChanged(String value) {
@@ -263,10 +328,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   onPressed: _onLogin,
-                  child: const Text(
-                    'Login',
-                    style: TextStyle(color: Colors.white),
-                  ),
+                  //5.9 Mostrar CircularProgressIndicator si está cargando, o el texto Login
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          'Login',
+                          style: TextStyle(color: Colors.white),
+                        ),
                 ),
                 const SizedBox(height: 20),
 
