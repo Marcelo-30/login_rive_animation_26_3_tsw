@@ -2,12 +2,11 @@
 <!-- Permiso necesario para consumir tanto Firebase como nuestra API de Spring Boot -->
     <uses-permission android:name="android.permission.INTERNET"/>
 
-<!-- usesCleartextTraffic="true" permite peticiones HTTP locales (sin HTTPS) hacia Spring Boot -->
+<!-- HTTP local se habilita solo en los manifiestos debug y profile. -->
     <application
         android:label="flutter_application_1"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
-        android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
