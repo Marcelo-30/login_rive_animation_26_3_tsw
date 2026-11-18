@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:rive/rive.dart';
-//5.1 Importar Firebase Auth y la pantalla de productos
+// Firebase Auth y la pantalla de torneos.
 import 'package:firebase_auth/firebase_auth.dart';
-import 'products_screen.dart';
+import 'tournaments_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -171,13 +171,13 @@ Future<void> _onLogin() async {
 
     await Future.delayed(const Duration(seconds: 2));
 
-    //5.7 Navegar a la pantalla de productos
+    // Navegar a los torneos después de autenticar y celebrar con Rive.
     if (!mounted) return;
 
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => const ProductsScreen(),
+        builder: (_) => const TournamentsScreen(),
       ),
     );
   } on FirebaseAuthException catch (e) {
