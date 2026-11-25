@@ -48,6 +48,6 @@ app.*.map.json
 .widget_preview/
 
 # Firebase credentials (No subir llaves al repositorio)
-lib/firebase_options.dart
+/lib/firebase_options.dart
 **/google-services.json
 **/GoogleService-Info.plist
