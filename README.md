@@ -252,3 +252,63 @@ test(mobile): cover football API contracts and resource navigation
 feat(api): allow configured Flutter web origins in development
 docs: document Flutter and Spring Boot integration setup
 ```
+
+## Hito 1 · Identidad segura y torneos de fútbol (24 de noviembre de 2026)
+
+Se conserva la navegación Login → Torneos y todas las funciones de fútbol.
+
+- Login valida solo campos vacíos y muestra `Credenciales inválidas` para errores
+  de autenticación. Conserva el indicador, los triggers y las esperas de Rive.
+- Sign up abre `SignUpScreen` con correo institucional, reglas de contraseña y
+  confirmación por campo. Crea la cuenta en Firebase, cierra la sesión automática
+  y regresa al Login con confirmación. No guarda usuarios en PostgreSQL.
+- Forgot password? abre un diálogo con el correo del Login, valida el formato y
+  solicita el correo real a Firebase. La respuesta no revela si existe la cuenta.
+- Cerrar sesión desde torneos ejecuta signOut y elimina las rutas
+  anteriores con pushAndRemoveUntil.
+
+Para ejecutar el backend de fútbol, utiliza las instrucciones anteriores.
+Mantén disponible PostgreSQL y los archivos locales de configuración.
+Para ejecutar Flutter:
+
+```powershell
+Set-Location C:\Users\marce\Repos\Front-end\Mobile\login_rive_animation
+flutter pub get
+flutter run -d chrome --web-port=3000 --dart-define=API_BASE_URL=http://localhost:8080
+```
+
+Para Android Emulator, la API usa automáticamente `http://10.0.2.2:8080`.
+En un teléfono físico define API_BASE_URL con la IP local de tu PC.
+
+Comprobaciones de este hito:
+
+```powershell
+flutter analyze
+flutter test
+flutter build web
+```
+
+El análisis y la compilación Web pasan. La suite tiene 14 pruebas aprobadas y
+3 omitidas: la integración real de fútbol es optativa y las dos pruebas del
+Login necesitan la DLL de Rive en el runner Windows. En el navegador se
+comprobaron Login vacío, indicador, mensaje genérico con credenciales ficticias,
+animación de fallo, ocultación de ojos, visibilidad de contraseña, registro con
+errores locales, regreso al Login y apertura del diálogo de recuperación.
+
+Quedan como demostración manual con una cuenta propia: Login exitoso y su
+animación, registro real, recepción de correo de recuperación y cierre de sesión.
+No se crearon cuentas ni se enviaron correos durante esta implementación.
+El dry run Wasm mantiene advertencias preexistentes de rive_common; la salida
+JavaScript de Flutter Web compila correctamente. No se cambió la dependencia.
+
+Fútbol pasó sus 4 pruebas con
+`mvnw.cmd -B -ntp test` al permitir acceso a PostgreSQL local, y también compiló
+con `mvnw.cmd -B -ntp -DskipTests package`. El primer intento de pruebas de
+fútbol falló por la restricción de conexión del entorno, no por el código.
+
+Los archivos locales de Firebase y las configuraciones Spring siguen presentes
+y fuera del seguimiento de Git. En fútbol se retiró application-dev.properties
+del índice con git rm --cached y se añadió su regla de exclusión. Ese cambio
+aparece preparado en Git; no se realizó ningún commit ni push. .gitignore no
+elimina información del historial: si se publicó una credencial privada,
+es necesario reemplazarla en su proveedor.
