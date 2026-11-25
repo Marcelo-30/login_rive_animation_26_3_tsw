@@ -4,6 +4,8 @@ import 'package:rive/rive.dart';
 // Firebase Auth y la pantalla de torneos.
 import 'package:firebase_auth/firebase_auth.dart';
 import 'tournaments_screen.dart';
+import 'signup_screen.dart';
+import 'password_reset_dialog.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -98,22 +100,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  // Validar el formato del correo.
-  bool isValidEmail(String email) {
-    final re = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
-    return re.hasMatch(email);
-  }
-
-  // Mínimo 8 caracteres, una minúscula, una mayúscula,
-  // un número y un carácter especial.
-  bool isValidPassword(String pass) {
-    final re = RegExp(
-      r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$',
-    );
-
-    return re.hasMatch(pass);
-  }
-
 //4.4 Dar acción al botón
 //5.3 Convertir _onLogin en asíncrono
 Future<void> _onLogin() async {
@@ -124,8 +110,8 @@ Future<void> _onLogin() async {
   final pass = passCtrl.text;
 
   //4.6 Evaluar los errores
-  final eError = isValidEmail(email) ? null : 'Correo inválido';
-  final pError = isValidPassword(pass) ? null : 'Contraseña inválida';
+  final eError = email.isEmpty ? 'Escribe tu correo.' : null;
+  final pError = pass.isEmpty ? 'Escribe tu contraseña.' : null;
 
   //4.7 Actualizar los mensajes de error
   setState(() {
@@ -141,8 +127,11 @@ Future<void> _onLogin() async {
   _numLook?.value = 50.0;
 
   //4.9 Si algún campo es inválido, activar fallo y detener
-  if (eError != null || pError != null) {
+  if (emailError != null || passError != null) {
     _trigFail?.fire();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Escribe tu correo y contraseña.')),
+    );
     return;
   }
 
@@ -180,28 +169,30 @@ Future<void> _onLogin() async {
         builder: (_) => const TournamentsScreen(),
       ),
     );
-  } on FirebaseAuthException catch (e) {
+  } on FirebaseAuthException {
     //5.8 Si Firebase rechaza las credenciales
     if (!mounted) return;
 
     setState(() {
       _isLoading = false;
-      passError = 'Credenciales incorrectas en Firebase';
     });
 
-    debugPrint('Firebase Auth error: ${e.code}');
     _trigFail?.fire();
-  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Credenciales inválidas')),
+    );
+  } catch (_) {
     // Manejar otros errores inesperados
     if (!mounted) return;
 
     setState(() {
       _isLoading = false;
-      passError = 'Ocurrió un error al iniciar sesión';
     });
 
-    debugPrint('Login error: $e');
     _trigFail?.fire();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Credenciales inválidas')),
+    );
   }
 }
 
@@ -261,7 +252,6 @@ Future<void> _onLogin() async {
                     _passwordFocusNode.requestFocus();
                   },
                   decoration: InputDecoration(
-                    errorText: emailError,
                     hintText: 'Email',
                     prefixIcon: const Icon(Icons.email),
                     border: OutlineInputBorder(
@@ -286,7 +276,6 @@ Future<void> _onLogin() async {
                   textInputAction: TextInputAction.done,
                   onSubmitted: (_) => _onLogin(),
                   decoration: InputDecoration(
-                    errorText: passError,
                     hintText: 'Password',
                     prefixIcon: const Icon(Icons.lock),
                     border: OutlineInputBorder(
@@ -310,11 +299,25 @@ Future<void> _onLogin() async {
 
                 SizedBox(
                   width: size.width,
-                  child: const Text(
-                    'Forgot password?',
-                    textAlign: TextAlign.right,
-                    style: TextStyle(
-                      decoration: TextDecoration.underline,
+                  child: TextButton(
+                    style: TextButton.styleFrom(
+                      alignment: Alignment.centerRight,
+                      foregroundColor: Colors.black,
+                    ),
+                    onPressed: _isLoading
+                        ? null
+                        : () => showDialog<void>(
+                            context: context,
+                            builder: (_) => PasswordResetDialog(
+                              initialEmail: emailCtrl.text.trim(),
+                            ),
+                          ),
+                    child: const Text(
+                      'Forgot password?',
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                        decoration: TextDecoration.underline,
+                      ),
                     ),
                   ),
                 ),
@@ -344,9 +347,24 @@ Future<void> _onLogin() async {
                     children: [
                       const Text("Don't have an account?"),
                       TextButton(
-                        onPressed: () {},
+                        onPressed: _isLoading
+                            ? null
+                            : () async {
+                                final registered = await Navigator.push<bool>(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const SignUpScreen(),
+                                  ),
+                                );
+                                if (!context.mounted || registered != true) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text(
+                                    'Cuenta creada. Ya puedes iniciar sesión.',
+                                  )),
+                                );
+                              },
                         child: const Text(
-                          'Register',
+                          'Sign up',
                           style: TextStyle(
                             color: Colors.black,
                             decoration: TextDecoration.underline,
